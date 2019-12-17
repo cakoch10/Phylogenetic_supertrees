@@ -1,0 +1,35 @@
+i is 1
+size of tree: 221
+Number of triplets: 221815
+computing intersection
+Length of induced triplet set: 173216
+Size of intersection: 145941
+Ratio achieved: 0.657940
+i is 2
+size of tree: 173
+Number of triplets: 105995
+computing intersection
+Length of induced triplet set: 94336
+Size of intersection: 71762
+Ratio achieved: 0.677032
+i is 3
+size of tree: 183
+Number of triplets: 125580
+computing intersection
+Length of induced triplet set: 114992
+Size of intersection: 98786
+Ratio achieved: 0.786638
+i is 4
+size of tree: 185
+Number of triplets: 129766
+computing intersection
+Length of induced triplet set: 115033
+Size of intersection: 83563
+Ratio achieved: 0.643951
+i is 5
+size of tree: 163
+Number of triplets: 88560
+computing intersection
+Length of induced triplet set: 81458
+Size of intersection: 60278
+Ratio achieved: 0.680646

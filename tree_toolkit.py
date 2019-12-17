@@ -24,12 +24,13 @@ subtree of node
 '''
 def computer_diff_pairs_subtree(tr, parent, node, num_pairs_diff_subtree, num_pairs_same_tree, q):
     parent_contrib = num_pairs_diff_subtree[parent]
-    sib = tr.siblings(node)[0].identifier
-    num_leaves_sib = len(tr.leaves(sib))
-    num_leaves_parent = len(tr.leaves(parent))
-    num_leaves_self = len(tr.leaves(node))
-    num_pairs_diff_subtree[node] = parent_contrib + num_leaves_sib *(q - num_leaves_parent)
-    num_pairs_same_tree[node] = num_pairs_same_tree[parent] + num_leaves_self*(num_leaves_self - 1)//2
+    if tr.siblings(node) != []:
+        sib = tr.siblings(node)[0].identifier
+        num_leaves_sib = len(tr.leaves(sib))
+        num_leaves_parent = len(tr.leaves(parent))
+        num_leaves_self = len(tr.leaves(node))
+        num_pairs_diff_subtree[node] = parent_contrib + num_leaves_sib *(q - num_leaves_parent)
+        num_pairs_same_tree[node] = num_pairs_same_tree[parent] + num_leaves_self*(num_leaves_self - 1)//2
     for child in tr.children(node):
         computer_diff_pairs_subtree(tr, node, child.identifier, num_pairs_diff_subtree, num_pairs_same_tree, q)
 

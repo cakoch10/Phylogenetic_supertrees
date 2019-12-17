@@ -1,28 +1,19 @@
-# from node import *
-
-
-'''
-from tree_algorithms import *
-new_tr = Tree()
-new_tr.create_node("n8", 8)
-new_tr.create_node("n7", 7, parent=8)
-new_tr.create_node("n9", 9, parent=8)
-new_tr.create_node("n3", 3, parent=9)
-new_tr.create_node("n1", 1, parent=9)
-new_tr.create_node("n5", 5, parent=7)
-new_tr.create_node("n6", 6, parent=7)
-
-new_tr.create_node("n4", 4, parent=6)
-new_tr.create_node("n2", 2, parent=6)
-
-leafs = [1,2,3,4,5]
-trips = root_triplets(new_tr)
-t = two_maxrtc(leafs, trips)
-'''
 from newick import read
 from treelib import Node, Tree
 import math
 from tree_toolkit import *
+import pandas as pd 
+import pickle
+
+
+'''
+computes the size of a triplet set
+'''
+def length_triplet_set(triplet_set):
+    count = 0
+    for trip in triplet_set:
+        count += len(triplet_set[trip])
+    return count
 
 # Finds path from curr_node to the node with node_key
 def find_path(tr, curr_node, path, node_key):
@@ -38,6 +29,8 @@ def find_path(tr, curr_node, path, node_key):
 
 # computes the least common ancestor
 def lca(tr, key1, key2):
+    if key1 == key2:
+        return key1
     # print("lca called")
     path1 = []
     path2 = []
@@ -47,19 +40,21 @@ def lca(tr, key1, key2):
         raise Exception("no path found from root to node")
     index = 0
     min_len = min(len(path1), len(path2))
-    while (path1[index] == path2[index] and index <min_len):
+    if min_len <= 1:
+        return path1[0]
+    while ((path1[index] == path2[index]) and (index < min_len)):
         index += 1
     return path1[index-1]
 
 
 # computes all rooted triplets in a tree
 def root_triplets(tr):
-    print("root_triplets and num leaves:")
+    # print("root_triplets and num leaves:")
     # create dictionary triplet where triplet(z) is a set of forzen sets such that {x,y}
     # is in triplet(z) if xy|z is a resolved triplet in tr
     triplets = {}
     leafs = tr.leaves()
-    print(len(leafs))
+    # print(len(leafs))
     for leaf in leafs:
         z = leaf.identifier
         for x_node in leafs:
@@ -97,7 +92,11 @@ def prq(x,y,z,tree,num_leafs,q,num_pairs_diff_subtree,num_pairs_same_tree):
     elif x == [] and y != [] and z == []:
         return 1/num_leafs * 1/num_leafs * (num_leafs - 1 + num_pairs_diff_subtree[y[0]])
     elif x == [] and y == [] and z != []:
-        return 1/num_leafs * 1/num_leafs * (num_leafs - 1 + 2*num_pairs_diff_subtree[z[0]])
+        # val = 1/num_leafs * 1/num_leafs * (num_leafs - 1 + 2*num_pairs_same_tree[z[0]])
+        # if val > 1:
+        #     print("diff pair")
+        #     print(val)
+        return 1/num_leafs * 1/num_leafs * (num_leafs - 1 + 2*num_pairs_same_tree[z[0]])
     elif x != [] and y != [] and z == []:
         lca_node = lca(tree,x[0],y[0])
         return 1/num_leafs * (num_leafs - len(tree.leaves(lca_node)))
@@ -147,6 +146,9 @@ def qmaxrtc(q, leaf_set, triplets):
     num_pairs_diff_subtree = {}
     num_pairs_same_tree = {}
 
+    num_pairs_diff_subtree[0] = 0
+    num_pairs_same_tree[0] = 0
+
     computer_diff_pairs_subtree(new_tr, 0, 0, num_pairs_diff_subtree, num_pairs_same_tree, q)
 
 
@@ -155,7 +157,7 @@ def qmaxrtc(q, leaf_set, triplets):
     for leaf in leaf_set:
         assignments[leaf] = []
 
-    prev = 1/3 - 4/3*(q+1)*(q+1)*len(triplets)
+    prev =( 1/3 - 4/3*(q+1)*(q+1))*len(triplets)
 
     # assign each leaf
     for leaf in leaf_set:
@@ -191,6 +193,8 @@ def qmaxrtc(q, leaf_set, triplets):
                             q,
                             num_pairs_diff_subtree,
                             num_pairs_same_tree)
+                # print("prob")
+                # print(prob)
                 vals[potential_parent] -= prob
 
             for potential_parent in tree_leaf_set:
@@ -203,9 +207,28 @@ def qmaxrtc(q, leaf_set, triplets):
                             q,
                             num_pairs_diff_subtree,
                             num_pairs_same_tree)
+                # print("prob2")
+                # print(prob)
                 vals[potential_parent] += prob
-        # now we want to compute max
-        
+        # now we want to compute max expectation over all possible
+        # assignments of leaf to a parent
+        max_val = -1
+        max_parent = 0
+        for potential_parent in tree_leaf_set:
+            # print(vals[potential_parent])
+            if vals[potential_parent] > max_val:
+                max_val = vals[potential_parent]
+                max_parent = potential_parent
+        assignments[leaf] = [max_parent]
+        prev = max_val
+    # now we want to assign every leaf to its respective parent
+    for leaf in leaf_set:
+        parent_leaf = assignments[leaf][0]
+        # print("assignemnt")
+        # print(parent_leaf)
+        new_tr.create_node("l" + str(leaf), leaf, parent=parent_leaf)
+    
+    return new_tr
 
 
 
@@ -222,17 +245,6 @@ def pr2(x, y, z):
         p = 3*p
     return p
 
-# def prq(x, y, z):
-#     if 
-
-# def qmaxrtc(q, leaf_set, triplets):
-#     if q % 2 == 0:
-#         q = q-1
-#     ew_a = 1/3 - 4/3*1/((q+1)*(q+1))
-#     ew = ew_a * len(triplets)
-
-
-#     for leaf in leaf_set:
 
 def two_maxrtc(leaf_set, triplets):
     print("two_maxrtc invoked")
@@ -413,25 +425,77 @@ computing intersection
 0.0029918272037361355
 '''
 
+
+
+
 def main():
-    for i in [3]:
+    q = 7
+    qvals = []
+    for i in range(0,5):
+        row = {}
+        qvals.append(row)
+    # create a row list for dataframe
+    row_list = []
+    # for i in [3]:
+        # name = "data" + str(i) + ".txt"
+        # t = parse_tree(name)
+        # # t = t.remove_subtree(101)
+        # print("i is ")
+        # print(i)
+        # print("size of tree:")
+        # print(len(t.all_nodes()))
+        # rt = root_triplets(t)
+        # print("size of triplet set")
+        # print(len(rt))
+        # leafs = []
+        # for i in t.leaves():
+        #     leafs.append(i.identifier)
+        # rt2 = two_maxrtc(leafs, rt)
+        # print(len(rt2))
+        # denom = intersection(rt, root_triplets(rt2))
+        # print(len(rt)/denom)
+    for i in [1,2,3,4,5]:
+        input_row = {}
+
         name = "data" + str(i) + ".txt"
+        input_row["Dataset"] = str(i)
         t = parse_tree(name)
-        # t = t.remove_subtree(101)
-        print("i is ")
-        print(i)
-        print("size of tree:")
-        print(len(t.all_nodes()))
         rt = root_triplets(t)
-        print("size of triplet set")
-        print(len(rt))
+
+        # SAVE RT for faster loading in the future
+        pickle_name = "data" + str(i) + ".p"
+        pickle.dump(rt, open(pickle_name,"wb"))
+
+        # t = t.remove_subtree(101)
+        print("i is %i" % i)
+        print("size of tree: %i" % len(t.all_nodes()))
+        print("Number of triplets: %i" % length_triplet_set(rt))
+
+        input_row["Size"] = len(t.all_nodes())
+        input_row["Triplet_set_size"] = length_triplet_set(rt)
+        row_list.append(input_row)
+        
         leafs = []
-        for i in t.leaves():
-            leafs.append(i.identifier)
-        rt2 = two_maxrtc(leafs, rt)
-        print(len(rt2))
-        denom = intersection(rt, root_triplets(rt2))
-        print(len(rt)/denom)
+        for nd in t.leaves():
+            leafs.append(nd.identifier)
+        rtq = qmaxrtc(q,leafs,rt)
+        induced_triplets = root_triplets(rtq)
+        len_induced_triplets = length_triplet_set(induced_triplets)
+        num = intersection(rt, induced_triplets)
+
+        ratio = num / length_triplet_set(rt)
+        qvals[i-1][7] = ratio
+
+        print("Length of induced triplet set: %i" % len_induced_triplets)
+        print("Size of intersection: %i" % num)
+        print("Ratio achieved: %f" % ratio)
+
+    df = pd.DataFrame(row_list)
+    df.to_csv("Static_Data.csv",index=False)
+
+    df2 = pd.DataFrame(qvals)
+    df2.to_csv("ratios.csv",index=False)
+
 
 
 

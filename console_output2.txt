@@ -1,0 +1,41 @@
+C:\Users\Dell\Documents\Cornell\Senior\CS4775\Phylogenetic_supertrees>python qmaxrtc.py
+q is: 31
+i is 1
+size of tree: 221
+Number of triplets: 221815
+computing intersection
+Length of induced triplet set: 240965
+Size of intersection: 176065
+Ratio achieved: 0.793747
+q is: 31
+i is 2
+size of tree: 173
+Number of triplets: 105995
+computing intersection
+Length of induced triplet set: 130674
+Size of intersection: 88652
+Ratio achieved: 0.836379
+q is: 31
+i is 3
+size of tree: 183
+Number of triplets: 125580
+computing intersection
+Length of induced triplet set: 160271
+Size of intersection: 117186
+Ratio achieved: 0.933158
+q is: 31
+i is 4
+size of tree: 185
+Number of triplets: 129766
+computing intersection
+Length of induced triplet set: 142324
+Size of intersection: 99666
+Ratio achieved: 0.768044
+q is: 31
+i is 5
+size of tree: 163
+Number of triplets: 88560
+computing intersection
+Length of induced triplet set: 96295
+Size of intersection: 66685
+Ratio achieved: 0.752992

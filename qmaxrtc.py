@@ -429,7 +429,7 @@ computing intersection
 
 
 def main():
-    q = 7
+    # q = 7
     qvals = []
     for i in range(0,5):
         row = {}
@@ -454,41 +454,45 @@ def main():
         # print(len(rt2))
         # denom = intersection(rt, root_triplets(rt2))
         # print(len(rt)/denom)
-    for i in [1,2,3,4,5]:
-        input_row = {}
+    for q in [31]:
+        for i in [1,2,3,4,5]:
+            input_row = {}
+            print("q is: %i" % q)
+            name = "data" + str(i) + ".txt"
+            input_row["Dataset"] = str(i)
+            t = parse_tree(name)
+            # rt = root_triplets(t)
 
-        name = "data" + str(i) + ".txt"
-        input_row["Dataset"] = str(i)
-        t = parse_tree(name)
-        rt = root_triplets(t)
+            # SAVE RT for faster loading in the future
+            pickle_name = "data" + str(i) + ".p"
+            # pickle.dump(rt, open(pickle_name,"wb"))
 
-        # SAVE RT for faster loading in the future
-        pickle_name = "data" + str(i) + ".p"
-        pickle.dump(rt, open(pickle_name,"wb"))
+            # LOAD RT from memory
+            rt = pickle.load(open(pickle_name, "rb"))
 
-        # t = t.remove_subtree(101)
-        print("i is %i" % i)
-        print("size of tree: %i" % len(t.all_nodes()))
-        print("Number of triplets: %i" % length_triplet_set(rt))
+            # t = t.remove_subtree(101)
+            print("i is %i" % i)
+            print("size of tree: %i" % len(t.all_nodes()))
+            print("Number of triplets: %i" % length_triplet_set(rt))
 
-        input_row["Size"] = len(t.all_nodes())
-        input_row["Triplet_set_size"] = length_triplet_set(rt)
-        row_list.append(input_row)
-        
-        leafs = []
-        for nd in t.leaves():
-            leafs.append(nd.identifier)
-        rtq = qmaxrtc(q,leafs,rt)
-        induced_triplets = root_triplets(rtq)
-        len_induced_triplets = length_triplet_set(induced_triplets)
-        num = intersection(rt, induced_triplets)
+            input_row["Size"] = len(t.all_nodes())
+            input_row["Triplet_set_size"] = length_triplet_set(rt)
+            row_list.append(input_row)
+            
+            leafs = []
+            for nd in t.leaves():
+                leafs.append(nd.identifier)
+            rtq = qmaxrtc(q,leafs,rt)
+            induced_triplets = root_triplets(rtq)
+            len_induced_triplets = length_triplet_set(induced_triplets)
+            num = intersection(rt, induced_triplets)
 
-        ratio = num / length_triplet_set(rt)
-        qvals[i-1][7] = ratio
+            ratio = num / length_triplet_set(rt)
+            qvals[i-1][q] = ratio
 
-        print("Length of induced triplet set: %i" % len_induced_triplets)
-        print("Size of intersection: %i" % num)
-        print("Ratio achieved: %f" % ratio)
+            print("Length of induced triplet set: %i" % len_induced_triplets)
+            print("Size of intersection: %i" % num)
+            print("Ratio achieved: %f" % ratio)
 
     df = pd.DataFrame(row_list)
     df.to_csv("Static_Data.csv",index=False)

@@ -21,10 +21,12 @@ t = two_maxrtc(leafs, trips)
 '''
 from newick import read
 from treelib import Node, Tree
+import math
+from tree_toolkit import *
 
 # Finds path from curr_node to the node with node_key
 def find_path(tr, curr_node, path, node_key):
-
+    # print("find_path")
     path.append(curr_node)
     if curr_node == node_key:
         return True
@@ -36,31 +38,28 @@ def find_path(tr, curr_node, path, node_key):
 
 # computes the least common ancestor
 def lca(tr, key1, key2):
+    # print("lca called")
     path1 = []
     path2 = []
-
     find_path1 = find_path(tr, tr.root, path1, key1)
     find_path2 = find_path(tr, tr.root, path2, key2)
-
     if not find_path1 or not find_path2:
         raise Exception("no path found from root to node")
-
     index = 0
-
     min_len = min(len(path1), len(path2))
-
     while (path1[index] == path2[index] and index <min_len):
         index += 1
-    
     return path1[index-1]
 
 
 # computes all rooted triplets in a tree
 def root_triplets(tr):
+    print("root_triplets and num leaves:")
     # create dictionary triplet where triplet(z) is a set of forzen sets such that {x,y}
     # is in triplet(z) if xy|z is a resolved triplet in tr
     triplets = {}
     leafs = tr.leaves()
+    print(len(leafs))
     for leaf in leafs:
         z = leaf.identifier
         for x_node in leafs:
@@ -84,6 +83,130 @@ def root_triplets(tr):
                             triplets[z] = set()
                             triplets[z].add(xy)
     return triplets
+
+
+
+# assume that if x=[] if x doesn't have an assignment. Likewise for the others. An assignment is id of node
+def prq(x,y,z,tree,num_leafs,q,num_pairs_diff_subtree,num_pairs_same_tree):
+    if x == [] and y == [] and z == []:
+        return 1/3 - 4/3*1/((q+1)*(q+1))
+    elif x != [] and y == [] and z == []:
+        # if y is assigned to the leaf of x, z can be any other leaf, hence the num_leafs - 1
+        # otherwise its the number of pairs, (z,y) that appear in different subtrees, hence num_pairs_diff_subtree
+        return 1/num_leafs * 1/num_leafs * (num_leafs - 1 + num_pairs_diff_subtree[x[0]])
+    elif x == [] and y != [] and z == []:
+        return 1/num_leafs * 1/num_leafs * (num_leafs - 1 + num_pairs_diff_subtree[y[0]])
+    elif x == [] and y == [] and z != []:
+        return 1/num_leafs * 1/num_leafs * (num_leafs - 1 + 2*num_pairs_diff_subtree[z[0]])
+    elif x != [] and y != [] and z == []:
+        lca_node = lca(tree,x[0],y[0])
+        return 1/num_leafs * (num_leafs - len(tree.leaves(lca_node)))
+    elif x != [] and y == [] and z != []:
+        lca_node = lca(tree,x[0],z[0])
+        if lca_node == x[0]:
+            return 0.0
+        i = 0
+        # want to check which subtree contains child
+        child1 = tree.children(lca_node)[0].identifier
+        child2 = tree.children(lca_node)[1].identifier
+        if tree.subtree(child1).contains(x[0]):
+            i = child1
+        else:
+            i = child2
+        return 1/num_leafs * len(tree.leaves(i))
+    elif x == [] and y != [] and z != []:
+        lca_node = lca(tree,y[0],z[0])
+        if lca_node == y[0]:
+            return 0.0
+        i = 0
+        child1 = tree.children(lca_node)[0].identifier
+        child2 = tree.children(lca_node)[1].identifier
+        if tree.subtree(child1).contains(y[0]):
+            i = child1
+        else:
+            i = child2
+        return 1/num_leafs * len(tree.leaves(i))
+    else:
+        # last case is x!=[],y!=[],z!=[]
+        return float((lca(tree,x[0],z[0]) == lca(tree,y[0],z[0])) and (lca(tree,x[0],z[0]) != lca(tree,x[0],y[0])))
+        
+        
+
+# assume leaf_set is a set of positive integers and triplets, a set of rooted triplets
+def qmaxrtc(q, leaf_set, triplets):
+    # first we need to construct a full binary tree
+    # assume q=2^k-1 for k>1. So we want to construct a complete binary tree of depth
+    # k-1 and this will yield a tree of size q
+    depth_tree = int(math.log(q+1,2)) - 1
+    node_ids = [-(i+1) for i in range(0, q)] # ensure our labeling set is negative to be disjoint with leaf_set
+    new_tr = Tree()
+    new_tr.create_node("n0", 0)
+    create_binary_tree(new_tr, 0, node_ids, depth_tree, 0)
+    tree_leaf_set = [n.identifier for n in new_tr.leaves()]
+
+    num_pairs_diff_subtree = {}
+    num_pairs_same_tree = {}
+
+    computer_diff_pairs_subtree(new_tr, 0, 0, num_pairs_diff_subtree, num_pairs_same_tree, q)
+
+
+    # our goal is to asssign each leaf in leaf_set to an element of tree_leaf_set
+    assignments = {}
+    for leaf in leaf_set:
+        assignments[leaf] = []
+
+    prev = 1/3 - 4/3*(q+1)*(q+1)*len(triplets)
+
+    # assign each leaf
+    for leaf in leaf_set:
+        leaf_triplets = []
+        # to compute all triplets xy|z that l is a part of
+        for t in triplets:
+            if t == leaf:
+                for f_set in triplets[t]:
+                    leaf_triplets.append((f_set,leaf))
+            else:
+                for f_set in triplets[t]:
+                    for elm in f_set:
+                        if elm == leaf:
+                            leaf_triplets.append((f_set,t))
+        
+        vals = {}
+        # initialization
+        # vals[potential_parent] will be E[W|assignments, leaf assigned to potential_parent] at the end
+        for potential_parent in tree_leaf_set:
+            vals[potential_parent] = prev
+        
+        for (f_set,z) in leaf_triplets:
+            x,y = f_set
+            # consider every possible assignment of leaf to a node in tree_leaf_set
+            # base case is leaf is unassaigned
+            assignments[leaf] = []
+            for potential_parent in tree_leaf_set:
+                prob = prq(assignments[x],
+                            assignments[y],
+                            assignments[z],
+                            new_tr,
+                            len(tree_leaf_set),
+                            q,
+                            num_pairs_diff_subtree,
+                            num_pairs_same_tree)
+                vals[potential_parent] -= prob
+
+            for potential_parent in tree_leaf_set:
+                assignments[leaf] = [potential_parent]
+                prob = prq(assignments[x],
+                            assignments[y],
+                            assignments[z],
+                            new_tr,
+                            len(tree_leaf_set),
+                            q,
+                            num_pairs_diff_subtree,
+                            num_pairs_same_tree)
+                vals[potential_parent] += prob
+        # now we want to compute max
+        
+
 
 
 def pr2(x, y, z):
@@ -112,6 +235,7 @@ def pr2(x, y, z):
 #     for leaf in leaf_set:
 
 def two_maxrtc(leaf_set, triplets):
+    print("two_maxrtc invoked")
     # n = len(leaf_set)
     # define a tree with two internal nodes
     # a is 0 and b is 1
@@ -175,7 +299,7 @@ def two_maxrtc(leaf_set, triplets):
     return new_tr
     
 
-def tree_size(stack_k, new_tr,parent_id):
+def tree_size(stack_k, new_tr, parent_id):
     if not stack_k.empty():
         id = stack_k.pop()
         label = "n" + str(id)
@@ -195,6 +319,7 @@ def tree_size(stack_k, new_tr,parent_id):
 
 # compute intersection of resolved triplets
 def intersection(triplets1, triplets2):
+    print("computing intersection")
     intersection_set = []
     for t1 in triplets1:
         for t2 in triplets2:
@@ -216,6 +341,7 @@ def intersection(triplets1, triplets2):
 
 
 def parse_newick(trees, new_tr, parent_id, st_ids):
+    # print("parsing newick")
     if trees == []:
         return
 
@@ -245,25 +371,71 @@ def parse_tree(fname):
 
     return new_tr
 
+'''
+1
+size of tree:
+221
+size of triplet set
+111
+computing intersection
+0.0011419753086419754
+
+2
+0.0018581802648440838
+size of tree:
+173
+num triplets: 87
+
+3
+0.001621716904635995
+size of tree:
+183
+num triplets:
+92
+
+4
+size of tree:
+185
+size of triplet set
+93
+
+computing intersection
+0.0018500099462900339
+i is
+5
+size of tree:
+163
+size of triplet set
+82
+root_triplets and num leaves:
+82
+computing intersection
+0.0029918272037361355
+'''
 
 def main():
-    for i in [2,3,4,5]:
-        name = "Datafile_S" + str(i) + ".txt"
+    for i in [3]:
+        name = "data" + str(i) + ".txt"
         t = parse_tree(name)
         # t = t.remove_subtree(101)
         print("i is ")
         print(i)
+        print("size of tree:")
+        print(len(t.all_nodes()))
         rt = root_triplets(t)
+        print("size of triplet set")
         print(len(rt))
         leafs = []
         for i in t.leaves():
             leafs.append(i.identifier)
         rt2 = two_maxrtc(leafs, rt)
+        print(len(rt2))
         denom = intersection(rt, root_triplets(rt2))
         print(len(rt)/denom)
-            
 
 
 
 if __name__ == "__main__":
     main()
+
+
